@@ -1,0 +1,224 @@
+select*
+FROM job_postings_fact
+LIMIT 10;               
+
+SELECT job_id,
+job_title_short AS title,
+job_location AS location,
+job_posted_date AT TIME ZONE 'UTC' 
+AT TIME ZONE 'EST' AS date
+FROM job_postings_fact
+ 
+LIMIT 10;
+
+Select 
+Count(job_id) AS job_posted_count,
+EXTRACT(Month FROM job_posted_date) AS Month
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+GROUP BY month
+ORDER BY job_posted_count;
+
+
+SELECT
+EXTRACT(Month FROM job_posted_date) AS Month
+FROM job_postings_fact
+LIMIT   10;
+
+Create TABLE New_jan_2023_jobs(
+    job_id Integer,
+    job_title_short text,
+    job_posted_date Date,
+    job_work_from_home Boolean
+);
+
+ALTER table New_jan_2023_jobs
+ALTER Column job_title_short type varchar(60);
+
+SELECT *
+from New_jan_2023_jobs;
+
+INSERT INTO New_jan_2023_jobs(job_id,
+job_title_short,
+job_posted_date,
+job_work_from_home)
+Values(0,'Data Analyst', '2023-04-09', 'True');
+
+SELECT
+EXTRACT(Month FROM job_posted_date) AS Month
+FROM new_jan_2023_jobs;
+
+
+SELECT *
+FROM job_postings_fact
+WHERE EXTRACT(Month FROM job_posted_date) = 1
+LIMIT 100;
+
+Create table Jan_2023 AS
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT(Month FROM job_posted_date) = 1
+    LIMIT 100;
+
+    Select *
+    FROM Jan_2023;
+
+    Create table Feb_2023 AS
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT(Month FROM job_posted_date) = 2
+    LIMIT 100;
+
+    Create table Mar_2023 AS
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT(Month FROM job_posted_date) = 3
+    LIMIT 100;
+
+Select *
+    FROM Mar_2023;
+
+-- case example
+SELECT 
+     job_title_short,
+     job_location,
+     CASE
+         When job_location ='Anywhere' Then 'Remote'
+         When job_location ='New York, NY' Then 'Local'
+         Else 'Onsite'
+     END As Location_category
+FROM job_postings_fact;
+
+-- sub query example
+Select *
+from (
+    Select *
+    FROM job_postings_fact
+    Where EXTRACT(Month FROM job_posted_date)=1
+) AS january_jobs; 
+
+--CTE's example
+with january_jobs AS(
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT (Month FROM job_posted_date)=2
+)
+Select *
+FROM january_jobs;
+
+
+Select 
+ company_id,
+Name As Company_Name
+From company_dim
+Where company_id IN(
+select 
+      company_id
+From
+     job_postings_fact
+WHERE
+     job_no_degree_mention = true
+ORDER BY 
+     company_id
+     
+)
+
+With Company_job_count AS(
+Select company_id,
+Count(*)
+FROM job_postings_fact
+GROUP BY company_id
+)
+
+Select *
+From Company_job_count;
+
+With Company_job_count As (
+    Select company_id,
+    Count(*) As total_jobs
+    FROM
+    job_postings_fact
+    GROUP BY
+    company_id
+)
+
+Select 
+Name As Company_Name,
+Company_job_count.total_jobs
+From 
+company_dim
+Left Join Company_job_count on Company_job_count.company_id =company_dim.company_id
+ORDER BY 
+total_jobs DESC
+
+
+--PRACTICE PROBLEM
+
+select *
+FROM company_dim
+Limit 100
+
+select skills,
+count(*)
+FROM job_postings_fact
+-- Where skills = 'sql'
+GROUP BY skills
+Order by skills ASC
+
+select *
+FROM skills_job_dim
+
+select 
+job_title_short,
+count(*)
+From job_postings_fact
+GROUP BY job_title_short
+Order BY job_title_short ASC
+
+Select 
+job_title_short,
+count(*)
+
+FROM job_postings_fact
+WHERE job_location = 'Anywhere'
+GROUP BY job_title_short
+
+
+With job_posting_skill AS (
+
+SELECT 
+skill_id,
+Count(*)
+FROM skills_job_dim
+Inner Join job_postings_fact ON job_postings_fact.job_id = skills_job_dim.job_id
+Where job_work_from_home = 'True' And
+job_title_short = 'Data Analyst'
+GROUP BY skill_id
+
+)
+Select job_posting_skill.skill_id,
+count,
+skills
+From job_posting_skill
+Inner Join skills_dim On Skills_dim.skill_id = job_posting_skill.skill_id
+ORDER BY count Desc
+Limit 5
+
+
+Select 
+job_title_short,
+job_location,
+salary_year_avg
+From(
+Select *
+From jan_2023
+UNION All
+Select *
+From Feb_2023
+UNION All
+Select *
+From Mar_2023
+) As jobs_from_first_quarter
+Where salary_year_avg >70000
+ORDER BY 
+salary_year_avg DESC
